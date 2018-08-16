@@ -1,0 +1,327 @@
+一、编译安装方式
+
+1.依赖环境的安装-如果需要用编译安装erlang语言环境，需要安装C++编译。
+	yum -y install make gcc gcc-c++ kernel-devel m4 ncurses-devel openssl-devel unixODBC unixODBC-devel httpd python-simplejson
+
+2.erlang语言环境的安装(rabbitMq是用erlang分布式语言开发的)
+安装文件获取
+	wget http://erlang.org/download/otp_src_20.3.tar.gz
+解压erlang安装包
+	tar -xzvf otp_src_20.3.tar.gz
+进入erlang目录
+	cd otp_src_20.3
+编译安装erlang语言环境 prefix=/usr/local/erlang 为安装目录
+	./configure  --prefix=/usr/local/erlang --enable-smp-support  --enable-threads  --enable-sctp --enable-kernel-poll --enable-hipe  --with-ssl --without-javac
+
+erlang语言编译配置选项：
+	–prefix 指定安装目录 
+	–enable-smp-support启用对称多处理支持（Symmetric Multi-Processing对称多处理结构的简称）
+	–enable-threads启用异步线程支持
+	–enable-sctp启用流控制协议支持（Stream Control Transmission Protocol，流控制传输协议）
+	–enable-kernel-poll启用Linux内核poll
+	–enable-hipe启用高性能Erlang –with-ssl 启用ssl包 –without-javac 
+	不用java编译
+
+开始安装编译：
+	make && make install
+
+配置erlang环境变量:
+	vim /etc/profile
+	ERL_HOME=/usr/local/erlang
+	PATH=$ERL_HOME/bin:$PATH
+	export ERL_HOME PATH
+使用配置生效:
+	source /etc/profile
+
+测试erlang安装是否成功
+	erl
+	会输出 erlang安装版本号
+
+下载rpm包
+	wget http://www.rabbitmq.com/releases/rabbitmq-server/v3.6.15/rabbitmq-server-3.6.15-1.el6.noarch.rpm
+
+安装rabbitMQ(rpm 包安装推荐)
+	rpm -ivh rabbitmq-server-3.6.15-1.el6.noarch.rpm
+
+安装会报错 有依赖关系解决方法不安装依赖关系
+	warning: rabbitmq-server-3.6.15-1.el6.noarch.rpm: Header V4 RSA/SHA1 Signature, key ID 6026dfca: NOKEY
+	error: Failed dependencies:
+	    erlang >= R16B-03 is needed by rabbitmq-server-3.6.15-1.el6.noarch
+	    socat is needed by rabbitmq-server-3.6.15-1.el6.noarch
+	  
+解决方法：
+	yum -y install socat
+此时会报错没有socat包或是找不到socat包，解决方法安装centos的epel的扩展源
+	yum -y install epel-release
+之后执行
+	yum -y install socat
+重新安装socat
+接着安装
+	rpm -ivh rabbitmq-server-3.6.15-1.el6.noarch.rpm 
+	安装会报错 有依赖关系
+解决方法不安装依赖关系
+	rpm -i --nodeps rabbitmq-server-3.6.15-1.el6.noarch.rpm
+	rpm -ivh --nodeps rabbitmq-server-3.6.15-1.el6.noarch.rpm
+
+
+生成配置文件
+	cp /usr/share/doc/rabbitmq-server-3.6.15-1/rabbitmq.config.example /etc/rabbitmq/rabbitmq.config
+
+启动rabbitmq
+	service rabbitmq-server start
+报错如下：
+	Starting rabbitmq-server: rmdir: failed to remove `/var/run/rabbitmq’: Directory not empty 
+	FAILED - check /var/log/rabbitmq/startup_{log, _err} 
+	rabbitmq-server.
+解决方法：
+	ln -s /usr/local/erlang/bin/erl      /usr/bin/erl
+如果已经存在 /usr/bin/erl 
+则查看/var/log/rabbitmq/startup_err文件查看报错日志
+	ERROR: epmd error for host controller: timeout (timed out) 
+	或者 
+	ERROR: epmd error for host bogon: address (cannot connect to host/port) 
+	rabbitmq默认用户是bogon
+
+于是， 
+vim /etc/hosts 加入一行 127.0.0.1 bogon
+之后再次 service rabbitmq-server start 启动正常
+sh-4.1# /sbin/service rabbitmq-server start 
+Starting rabbitmq-server: SUCCESS 
+rabbitmq-server.
+
+常用rabbitMq启动命令：
+
+	service rabbitmq-server start
+	service rabbitmq-server stop
+	service rabbitmq-server status
+	service rabbitmq-server rotate-logs
+	service rabbitmq-server restart
+	service rabbitmq-server condrestart
+	service rabbitmq-server try-restart
+	service rabbitmq-server reload
+	service rabbitmq-server force-reload
+
+	ps -ef | grep rabbitmq  查看rabbitMq进程
+
+	netstat -anplt | grep LISTEN  rabbitmq默认监听端口15672/5672
+
+
+然后开启管理页面插件
+	rabbitmq-plugins enable rabbitmq_management
+
+添加管理员账号 
+	rabbitmqctl add_user rabbitadmin 123456
+	sudo rabbitmqctl add_user rabbitadmin 123456
+
+分配用户标签 
+	rabbitmqctl set_user_tags rabbitadmin administrator
+
+创建和赋角色完成后查看并确认
+	sudo rabbitmqctl list_users 
+
+登录rabbitmq管理界面
+浏览器输入地址：http://服务器IP地址:15672/
+用户名密码：rabbitadmin/123456
+
+Rabbitmq服务器的主要通过rabbitmqctl和rabbimq-plugins两个工具来管理，以下是一些常用功能。
+
+1）. 服务器启动与关闭
+
+      启动: rabbitmq-server –detached
+
+      关闭: rabbitmqctl stop
+
+      若单机有多个实例，则在rabbitmqctlh后加–n 指定名称
+
+2）. 插件管理
+
+      开启某个插件：rabbitmq-pluginsenable xxx
+
+      关闭某个插件：rabbitmq-pluginsdisablexxx
+
+      注意：重启服务器后生效。
+
+
+RabbitMQ开机自启动
+	
+如通过yum安装的话直接通过chkconfig rabbitmq-server on 就可以设置为开机自启动，
+但公司这边是通过源代码进行安装，如何也通过系统服务来自启动呢？
+
+步骤：
+	1.增加自启动脚本：
+
+	在/etc/init.d目录下新建一个rabbitmq-server文件，内容如下：
+
+#!/bin/sh
+#
+# rabbitmq-server RabbitMQ broker
+#
+# chkconfig: - 80 05
+# description: Enable AMQP service provided by RabbitMQ
+#
+
+### BEGIN INIT INFO
+# Provides:          rabbitmq-server
+# Required-Start:    $remote_fs $network
+# Required-Stop:     $remote_fs $network
+# Description:       RabbitMQ broker
+# Short-Description: Enable AMQP service provided by RabbitMQ broker
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+export HOME=/root
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+NAME=rabbitmq-server
+DAEMON=/usr/local/rabbitmq/sbin/${NAME}
+CONTROL=/usr/local/rabbitmq/sbin/rabbitmqctl
+DESC=rabbitmq-server
+USER=root
+ROTATE_SUFFIX=
+INIT_LOG_DIR=/usr/local/rabbitmq/var/log/rabbitmq
+PID_FILE=/var/run/rabbitmq.pid
+
+START_PROG="daemon"
+LOCK_FILE=/var/lock/subsys/$NAME
+
+test -x $DAEMON || exit 0
+test -x $CONTROL || exit 0
+
+RETVAL=0
+set -e
+
+[ -f /etc/default/${NAME} ] && . /etc/default/${NAME}
+
+start_rabbitmq () {
+    status_rabbitmq quiet
+    if [ $RETVAL = 0 ] ; then
+        echo RabbitMQ is currently running
+    else
+        RETVAL=0
+        set +e
+        RABBITMQ_PID_FILE=$PID_FILE $START_PROG $DAEMON \
+            > "${INIT_LOG_DIR}/startup_log" \
+            2> "${INIT_LOG_DIR}/startup_err" \
+            0<&- &
+        $CONTROL wait $PID_FILE >/dev/null 2>&1
+        RETVAL=$?
+        set -e
+        case "$RETVAL" in
+            0)
+                echo SUCCESS
+                if [ -n "$LOCK_FILE" ] ; then
+                    touch $LOCK_FILE
+                fi
+                ;;
+            *)
+                echo FAILED - check ${INIT_LOG_DIR}/startup_\{log, _err\}
+                RETVAL=1
+                ;;
+        esac
+    fi
+}
+
+stop_rabbitmq () {
+    status_rabbitmq quiet
+    if [ $RETVAL = 0 ] ; then
+        set +e
+        $CONTROL stop ${PID_FILE} > ${INIT_LOG_DIR}/shutdown_log 2> ${INIT_LOG_DIR}/shutdown_err
+        RETVAL=$?
+        set -e
+        if [ $RETVAL = 0 ] ; then
+            if [ -n "$LOCK_FILE" ] ; then
+                rm -f $LOCK_FILE
+            fi
+        else
+            echo FAILED - check ${INIT_LOG_DIR}/shutdown_log, _err
+        fi
+    else
+        echo RabbitMQ is not running
+        RETVAL=0
+    fi
+}
+
+status_rabbitmq() {
+    set +e
+    if [ "$1" != "quiet" ] ; then
+        $CONTROL status 2>&1
+    else
+        $CONTROL status > /dev/null 2>&1
+    fi
+    if [ $? != 0 ] ; then
+        RETVAL=3
+    fi
+    set -e
+}
+
+rotate_logs_rabbitmq() {
+    set +e
+    $CONTROL rotate_logs ${ROTATE_SUFFIX}
+    if [ $? != 0 ] ; then
+        RETVAL=1
+    fi
+    set -e
+}
+
+restart_running_rabbitmq () {
+    status_rabbitmq quiet
+    if [ $RETVAL = 0 ] ; then
+        restart_rabbitmq
+    else
+        echo RabbitMQ is not runnning
+        RETVAL=0
+    fi
+}
+
+restart_rabbitmq() {
+    stop_rabbitmq
+    start_rabbitmq
+}
+
+case "$1" in
+    start)
+        echo -n "Starting $DESC: "
+        start_rabbitmq
+        echo "$NAME."
+        ;;
+    stop)
+        echo -n "Stopping $DESC: "
+        stop_rabbitmq
+        echo "$NAME."
+        ;;
+    status)
+        status_rabbitmq
+        ;;
+    rotate-logs)
+        echo -n "Rotating log files for $DESC: "
+        rotate_logs_rabbitmq
+        ;;
+    force-reload|reload|restart)
+        echo -n "Restarting $DESC: "
+        restart_rabbitmq
+        echo "$NAME."
+        ;;
+    try-restart)
+        echo -n "Restarting $DESC: "
+        restart_running_rabbitmq
+        echo "$NAME."
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status|rotate-logs|restart|condrestart|try-restart|reload|force-reload}" >&2
+        RETVAL=1
+        ;;
+esac
+
+exit $RETVAL
+
+	根据实际情况修改上面内容中的:
+	DAEMON=/usr/local/rabbitmq/sbin/${NAME}
+	CONTROL=/usr/local/rabbitmq/sbin/rabbitmqctl
+	DESC=rabbitmq-server
+	USER=root
+
+	2.保存上面的文件并设置执行权限
+	chmod u+x /etc/init.d/rabbitmq-server
+
+	3.配置为开机自启动服务
+	ln -s $(which erl) /usr/bin/erl && chkconfig rabbitmq-server on

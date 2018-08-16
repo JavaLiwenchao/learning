@@ -1,0 +1,118 @@
+安装redis
+第一步：下载redis安装包
+wget http://download.redis.io/releases/redis-4.0.9.tar.gz
+
+第二步：解压压缩包
+tar -zxvf redis-4.0.9.tar.gz
+
+mv /tmp/soft/redis-4.0.9 /redis/redis-4.0.9
+
+第三步：yum安装gcc依赖
+yum install gcc
+
+第四步：跳转到redis解压目录下
+cd redis-4.0.9
+
+第五步：编译安装
+make MALLOC=libc
+
+第六步：安装（指定路径安装）
+make install PREFIX=/redis/redis
+
+第七步：测试是否安装成功
+cd /redis/redis/bin
+./redis-server
+
+=========================================
+1、直接启动redis
+./redis-server
+
+2、以后台进程方式启动redis
+第一步：修改redis.conf文件
+将
+daemonize no　　
+修改为
+daemonize yes
+
+第二步：指定redis.conf文件启动
+ ./redis-server /redis/redis/etc/redis.conf
+
+第三步：关闭redis进程
+首先使用ps -aux | grep redis查看redis进程
+ps -aux | grep redis
+使用kill命令杀死进程
+kill -9 18714
+
+===========================================
+第八步：设置redis开机自启动
+1、在/redis/redis目录下新建etc目录
+cd /redis/redis
+mkdir etc
+
+2、将/redis/redis-4.0.9/redis.conf 文件复制一份到/redis/redis/etc目录下，，并命名为6379.conf
+cp /redis/redis-4.0.9/redis.conf /redis/redis/etc/6379.conf
+
+3、将redis的启动脚本复制一份放到/etc/init.d目录下
+cp /redis/redis-4.0.9/utils/redis_init_script /etc/init.d/redisd
+
+4、进入/etc/init.d目录，修改redisd启动脚本
+EXEC=/redis/redis/bin/redis-server
+CLIEXEC=/redis/redis/bin/redis-cli
+PIDFILE=/var/run/redis_${REDISPORT}.pid
+CONF="/redis/redis/etc/${REDISPORT}.conf"
+
+5、增加redisd服务控制脚本执行权限
+chmod +x /etc/rc.d/init.d/redisd
+
+6、设置redis开机自启动
+先切换到/etc/init.d目录下,然后执行自启命令
+chkconfig redisd on
+或chkconfig --add redisd
+看结果是redisd不支持chkconfig
+解决方法：
+使用vim编辑redisd文件，在第一行加入如下两行注释，保存退出
+# chkconfig:   2345 90 10
+# description:  Redis is a persistent key-value database
+注释的意思是，redis服务必须在运行级2，3，4，5下被启动或关闭，启动的优先级是90，关闭的优先级是10。
+
+再次执行开机自启命令，成功
+chkconfig redisd on
+
+service redisd start
+
+service redisd stop
+
+./redis-cli -h 127.0.0.1 -p 6379
+
+shutdown -r now 软重启
+
+设置外网访问
+firewall-cmd --permanent --add-port=6379/tcp
+firewall-cmd --reload
+
+更改redis.conf 文件
+bind 127.0.0.1
+protected-mode yes
+更改为
+# bind 127.0.0.1
+protected-mode no
+
+
+Redis服务器设置密码后，使用service redis stop 会出现以下信息：
+
+service redis stop
+Stopping ...
+OK
+(error) NOAUTH Authentication required.
+Waiting for Redis to shutdown ...
+Waiting for Redis to shutdown ...
+Waiting for Redis to shutdown ...
+Waiting for Redis to shutdown ...
+Waiting for Redis to shutdown ...
+Waiting for Redis to shutdown ...
+Waiting for Redis to shutdown ...
+
+解决办法：
+修改redis服务脚本，加入如下所示的红色授权信息即可：
+vim /etc/init.d/redisd
+$CLIEXEC -a "password" -p $REDISPORT shutdown

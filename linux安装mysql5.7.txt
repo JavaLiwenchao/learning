@@ -1,0 +1,109 @@
+1.在官网下载MySQL5.7安装包：mysql-5.7.20-linux-glibc2.12-x86_64.tar.gz。
+下载地址：https://dev.mysql.com/downloads/mysql/
+
+2.通过SSH Secure Shell Client远程访问CentOS7
+
+3.卸载系统自带的Mariadb数据库
+# 查询是否存在Mariadb数据库
+rpm -qa | grep mariadb
+# 删除已经安装的mariadb
+rpm -e --nodeps mariadb-libs-5.5.56-2.el7.x86_64
+# 重新查询
+rpm -qa | grep mariadb
+
+4.创建mysql用户组和mysql用户
+# 创建mysql用户组
+groupadd mysql
+# 创建一个用户名为mysql的用户并加入mysql用户组
+useradd -g mysql mysql
+# 设置密码
+passwd mysql ......
+
+5.将MySQL安装包上传到CentOS7服务器/tmp/soft目录下并解压
+# 直接下载
+wget https://cdn.mysql.com//Downloads/MySQL-5.7/mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz
+# tar xzvf mysql-5.7.22-linux-glibc2.12-x86_64.tar.gz
+
+6.将解压后的安装包移动到/data下目录，重命名为mysql
+mkdir /data
+mv /tmp/soft/mysql-5.7.22-linux-glibc2.12-x86_64 /data/mysql
+
+7.修改权限
+cd /data/mysql
+# 把当前目录下的文件及目录的属主改为mysql用户
+chown -R mysql .
+# 把当前目录下的文件及目录所属的组改为mysql组
+chgrp -R mysql .
+
+8.创建data目录，作为数据库存储位置
+mkdir /data/mysql/data
+
+9.初始化mysql
+/data/mysql/bin/mysqld --initialize --user=mysql --basedir=/data/mysql --datadir=/data/mysql/data
+出现以下错误：
+error while loading shared libraries: libaio.so.1: cannot open shared object file: No such file or directory
+解决方法：
+yum install libaio*。自动安装这两个包
+重新执行初始化命令
+
+记录初始化密码
+localhost: FcE/e>Pm>2(q
+mysqlforliwenchao2791372
+10.启动MySQL，并查看是否已启动成功
+/data/mysql/bin/mysqld_safe --user=mysql &
+
+ps aux | grep mysqld
+
+11.通过初始密码登录MySQL，并修改密码
+/data/mysql/bin/mysqladmin -uroot -p password
+
+12.关闭MySQL服务，并查看是否关闭成功
+/data/mysql/bin/mysqladmin -u root -p shutdown
+ps aux | grep mysqld
+
+13.设置开机自启
+# 复制启动脚本到资源目录
+cp /data/mysql/support-files/mysql.server /etc/rc.d/init.d/mysqld
+# 增加mysqld服务控制脚本执行权限
+chmod +x /etc/rc.d/init.d/mysqld
+# 将mysqld服务加入到系统服务
+chkconfig --add mysqld
+# 检查mysqld服务是否已经生效
+chkconfig --list mysqld
+说明：都没关闭（off）时是没有自动启动。
+执行下面命令：
+service mysqld start
+有可能报错（Starting MySQLCouldn't find MySQL server (/usr/local/mysql/[FAILED]ld_safe)）
+这是因为mysql默认安装在/usr/local目录下，如果安装在/usr/local目录下则会正常启动和关闭，不会报错。但是本次安装在自定义的/data目录下，此时需要修改/etc/init.d/mysqld文件，保存后退出
+vim mysqld
+basedir=/data/mysql
+datadir=/data/mysql/data
+
+14.配置全局环境变量
+# 编辑/etc/profile文件
+vim /etc/profile
+# 在profile文件底部添加如下两行配置，保存后退出
+PATH=/data/mysql/bin:/data/mysql/lib:$PATH
+export PATH
+#设置环境变量立即生效
+source /etc/profile
+
+15.设置远程主机登录
+# 查看3306端口是否已开放
+netstat -nupl|grep 3306
+# 开放3306端口并重启防火墙
+firewall-cmd --permanent --add-port=3306/tcp
+执行firewall-cmd --permanent --zone=public --add-port=3306/tcp，提示FirewallD is not running
+解决办法：
+通过systemctl status firewalld查看firewalld状态，发现当前是dead状态，即防火墙未开启
+通过systemctl start firewalld开启防火墙，没有任何提示即开启成功。
+再次通过systemctl status firewalld查看firewalld状态，显示running即已开启了。
+
+firewall-cmd --reload
+
+设置允许远程访问
+#登录；密码为新修改的密码123456
+mysql -uroot –p
+#设置远程访问（使用root密码）：
+mysql> grant all privileges on *.* to 'root' @'%' identified by '123456'; 
+mysql> flush privileges;

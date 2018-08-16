@@ -1,0 +1,57 @@
+这里选择将 RabbitMQ 安装到与 Erlang 同一个目录（/usr/local）下面：
+[root@hidden ~]# tar xvJf rabbitmq-server-generic-unix-3.6.15.tar.xz -C /usr/local
+[root@hidden ~]# cd /usr/local
+[root@hidden ~]# mv rabbitmq_server-3.6.15 rabbitmq
+
+同样修改/etc/profile 文件，添加下面的环境变量：
+PATH=/usr/local/rabbitmq/sbin:$PATH
+RABBITMQ_HOME=/usr/local/rabbitmq
+export RABBITMQ_HOME PATH
+之后执行source /etc/profile命令让配置文件生效。
+
+RabbitMQ 的运行
+
+在修改了/etc/profile 配置文件之后，可以任意打开一个 Shell 窗口，输入如下命令以
+运行 RabbitMQ 服务 ：
+rabbitmq-server -detached
+在 rabbitmq-server 命令后面添加一个“ － detached”参数是为了能够让 RabbitMQ
+服务以守护进程的方式在后台运行，这样就不会因为当前 Shell 窗口的关闭而影响服务 。
+运行 rabbitmqctl status 命令查看 RabbitMQ 是否正常启动，示例如下：
+[root@hidden ~]# rabbitmqctl status
+
+
+
+
+
+###假设所有操作在opt目录下进行
+cd /opt
+mkdir apps
+cd apps
+ 
+### 下载 RabbitMQ Server
+wget http://www.rabbitmq.com/releases/rabbitmq-server/v3.6.0/rabbitmq-server-generic-unix-3.6.0.tar.xz
+ 
+### 解压
+tar -xvJf rabbitmq-server-generic-unix-3.6.0.tar.xz
+ 
+### 安装 Erlang
+yum install erlang.x86_64 -y
+ 
+### 进入RabbitMQ的解压目录中
+cd rabbitmq_server-3.6.0
+cd sbin
+ 
+### 添加网站管理插件
+./rabbitmq-plugins enable rabbitmq_management
+ 
+### 启动RabbitMQ并在后台之行
+./rabbitmq-server start -detached
+ 
+### 添加RabbitMQ的帐号和密码
+./rabbitmqctl add_user admin admin
+ 
+### 设定帐号权限(administrator[超级管理员]，monitoring[监控者]，policymaker[策略制定者]，management[普通管理者])
+./rabbitmqctl set_user_tags admin administrator
+ 
+### 完成后打开网站并使用帐号密码登录<br><br>
+#netstat -tnlp|grep 5672
