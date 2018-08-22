@@ -230,3 +230,362 @@
 	drwxr-xr-x. 2 root root 23 Jul 23 17:31 .
 	dr-xr-x---. 14 root root 4096 Jul 23 17:31 ..
 	-rwxr--r--. 1 root root 55 Jul 23 17:31 example.sh
+	
+练习二、接收用户的参数
+		但是，像练习这样的脚本程序只能执行一些预先定义好的功能，未免太过死板了。为了
+	让 Shell 脚本程序更好地满足用户的一些实时需求，以便灵活完成工作，必须要让脚本程序能
+	够像之前执行命令时那样，接收用户输入的参数。
+	其实， Linux 系统中的 Shell 脚本语言早就考虑到了这些，已经内设了用于接收参数的变
+	量，变量之间可以使用空格间隔。例如$0 对应的是当前 Shell 脚本程序的名称， $#对应的是总共
+	有几个参数， $*对应的是所有位置的参数值， $?对应的是显示上一次命令的执行返回值，而$1、
+	$2、 $3……则分别对应着第 N 个位置的参数值。
+	理论过后我们来练习一下。尝试编写一个脚本程序示例，通过引用上面的变量参数来看
+	下真实效果：
+	[root@linuxprobe ~]# vim example.sh
+	#!/bin/bash
+	echo "当前脚本名称为$0"
+	echo "总共有$#个参数，分别是$*。 "
+	echo "第 1 个参数为$1，第 5 个为$5。 "
+	[root@linuxprobe ~]# sh example.sh one two three four five six
+	当前脚本名称为 example.sh
+	总共有 6 个参数，分别是 one two three four five six。
+	第 1 个参数为 one，第 5 个为 five。
+
+练习三、判断用户的参数
+		学习是一个登堂入室、由浅入深的过程。在学习完 Linux 命令、掌握 Shell 脚本语法变量
+	和接收用户输入的信息之后，就要踏上新的高度—能够进一步处理接收到的用户参数。
+	在本书前面章节中讲到，系统在执行 mkdir 命令时会判断用户输入的信息，即判断用户
+	指定的文件夹名称是否已经存在，如果存在则提示报错；反之则自动创建。 Shell 脚本中的条
+	件测试语法可以判断表达式是否成立，若条件成立则返回数字 0，否则便返回其他随机数值。
+	条件测试语法的执行格式如图 4-16 所示。切记，条件表达式两边均应有一个空格。
+			图 4-16 条件测试语句的执行格式
+		按照测试对象来划分，条件测试语句可以分为 4 种：
+		➢ 文件测试语句；
+		➢ 逻辑测试语句；
+		➢ 整数值比较语句；
+		➢ 字符串比较语句。
+	文件测试即使用指定条件来判断文件是否存在或权限是否满足等情况的运算符，具体的参数
+	如表 4-3 所示。
+	表 4-3 文件测试所用的参数
+		运算符		作用
+		-d 		测试文件是否为目录类型
+		-e 		测试文件是否存在
+		-f 		判断是否为一般文件
+		-r 		测试当前用户是否有权限读取
+		-w 		测试当前用户是否有权限写入
+		-x 		测试当前用户是否有权限执行
+	下面使用文件测试语句来判断/etc/fstab 是否为一个目录类型的文件，然后通过 Shell 解释
+	器的内设$?变量显示上一条命令执行后的返回值。如果返回值为 0，则目录存在；如果返回值
+	为非零的值，则意味着目录不存在：
+	[root@linuxprobe ~]# [ -d /etc/fstab ]
+	[root@linuxprobe ~]# echo $?
+	1
+	再使用文件测试语句来判断/etc/fstab 是否为一般文件，如果返回值为 0，则代表文件存
+	在，且为一般文件：
+	[root@linuxprobe ~]# [ -f /etc/fstab ]
+	[root@linuxprobe ~]# echo $?
+	0
+	
+	逻辑语句用于对测试结果进行逻辑分析，根据测试结果可实现不同的效果。例如在 Shell
+	终端中逻辑“与”的运算符号是&&，它表示当前面的命令执行成功后才会执行它后面的命令，
+	因此可以用来判断/dev/cdrom 文件是否存在，若存在则输出 Exist 字样。
+	[root@linuxprobe ~]# [ -e /dev/cdrom ] && echo "Exist"
+	Exist
+	
+	除了逻辑“与”外，还有逻辑“或”，它在 Linux 系统中的运算符号为||，表示当前面的命
+	令执行失败后才会执行它后面的命令，因此可以用来结合系统环境变量 USER 来判断当前登
+	录的用户是否为非管理员身份：
+	[root@linuxprobe ~]# echo $USER
+	root
+	[root@linuxprobe ~]# [ $USER = root ] || echo "user"
+	[root@linuxprobe ~]# su - linuxprobe
+	[linuxprobe@linuxprobe ~]$ [ $USER = root ] || echo "user"
+	user
+	
+	第三种逻辑语句是“非”，在 Linux 系统中的运算符号是一个叹号（！），它表示把条件测
+	试中的判断结果取相反值。也就是说，如果原本测试的结果是正确的，则将其变成错误的；原
+	本测试错误的结果则将其变成正确的。
+	我们现在切换回到 root 管理员身份，再判断当前用户是否为一个非管理员的用户。由于
+	判断结果因为两次否定而变成正确，因此会正常地输出预设信息：
+	[linuxprobe@linuxprobe ~]$ exit
+	logout
+	[root@linuxprobe root]# [ ! $USER = root ] || echo "administrator"
+	administrator
+	当前我们正在登录的即为管理员用户—root。下面这个示例的执行顺序是，先判断当前
+	登录用户的 USER 变量名称是否等于 root，然后用逻辑运算符“非”进行取反操作，效果就
+	变成了判断当前登录的用户是否为非管理员用户了。最后若条件成立则会根据逻辑“与”运
+	算符输出 user 字样；或条件不满足则会通过逻辑“或”运算符输出 root 字样，而如果前面的
+	&&不成立才会执行后面的||符号。
+	[root@linuxprobe ~]# [ ! $USER = root ] && echo "user" || echo "root"
+	root
+	
+	整数比较运算符仅是对数字的操作，不能将数字与字符串、文件等内容一起操作，而且
+	不能想当然地使用日常生活中的等号、大于号、小于号等来判断。因为等号与赋值命令符冲
+	突，大于号和小于号分别与输出重定向命令符和输入重定向命令符冲突。因此一定要使用规
+	范的整数比较运算符来进行操作。可用的整数比较运算符如表 4-4 所示。
+		表 4-4 可用的整数比较运算符
+		运算符				作用
+		-eq 			是否等于
+		-ne 			是否不等于
+		-gt 			是否大于
+		-lt 			是否小于
+		-le 			是否等于或小于
+		-ge 			是否大于或等于
+	接下来小试牛刀。我们先测试一下 10 是否大于 10 以及 10 是否等于 10（通过输出的返
+	回值内容来判断）：
+	[root@linuxprobe ~]# [ 10 -gt 10 ]
+	[root@linuxprobe ~]# echo $?
+	1
+	[root@linuxprobe ~]# [ 10 -eq 10 ]
+	[root@linuxprobe ~]# echo $?
+	0
+	在2.4 节曾经讲过 free 命令，它可以用来获取当前系统正在使用及可用的内存量信息。
+	接下来先使用 free -m 命令查看内存使用量情况（单位为 MB），然后通过 grep Mem:命令过滤
+	出剩余内存量的行，再用 awk '{print $4}'命令只保留第四列，最后用 FreeMem=`语句`的方式
+	把语句内执行的结果赋值给变量。
+	这个演示确实有些难度，但看懂后会觉得很有意思，没准在运维工作中也会用得上。
+	[root@linuxprobe ~]# free -m
+	total used free shared buffers cached
+	Mem: 1826 1244 582 9 1 413
+	-/+ buffers/cache: 830 996
+	Swap: 2047 0 2047
+	[root@linuxprobe ~]# free -m | grep Mem:
+	Mem: 1826 1244 582 9
+	[root@linuxprobe ~]# free -m | grep Mem: | awk '{print $4}'
+	582
+	[root@linuxprobe ~]# FreeMem=`free -m | grep Mem: | awk '{print $4}'`
+	[root@linuxprobe ~]# echo $FreeMem
+	582
+	上面用于获取内存可用量的命令以及步骤可能有些“超纲”了，如果不能理解领会也不
+	用担心，接下来才是重点。 我们使用整数运算符来判断内存可用量的值是否小于 1024，若小
+	于则会提示“Insufficient Memory”（内存不足）的字样：
+	[root@linuxprobe ~]# [ $FreeMem -lt 1024 ] && echo "Insufficient Memory"
+	Insufficient Memory
+	
+	字符串比较语句用于判断测试字符串是否为空值，或两个字符串是否相同。它经常用来
+	判断某个变量是否未被定义（即内容为空值），理解起来也比较简单。字符串比较中常见的运
+	算符如表 4-5 所示。
+			表 4-5 常见的字符串比较运算符
+		运算符 			作用
+		= 			比较字符串内容是否相同
+		!= 			比较字符串内容是否不同
+		-z 			判断字符串内容是否为空
+	接下来通过判断 String 变量是否为空值，进而判断是否定义了这个变量：
+	[root@linuxprobe ~]# [ -z $String]
+	[root@linuxprobe ~]# echo $?
+	0
+	再尝试引入逻辑运算符来试一下。当用于保存当前语系的环境变量值 LANG 不是英语
+	（en.US）时，则会满足逻辑测试条件并输出“Not en.US”（非英语）的字样：
+	[root@linuxprobe ~]# echo $LANG
+	en_US.UTF-8
+	[root@linuxprobe ~]# [ $LANG != "en.US" ] && echo "Not en.US"
+	Not en.US
+	
+
+三、流程控制语句
+		尽管此时可以通过使用 Linux 命令、管道符、重定向以及条件测试语句来编写最基本的
+	Shell 脚本，但是这种脚本并不适用于生产环境。原因是它不能根据真实的工作需求来调整
+	具体的执行命令，也不能根据某些条件实现自动循环执行。例如，我们需要批量创建 1000
+	位用户，首先要判断这些用户是否已经存在；若不存在，则通过循环语句让脚本自动且依次
+	创建他们。
+	接下来我们通过 if、 for、 while、 case 这 4 种流程控制语句来学习编写难度更大、功能更
+	强的 Shell 脚本。为了保证下文的实用性和趣味性，做到寓教于乐，我会尽可能多地讲解各种
+	不同功能的 Shell 脚本示例，而不是逮住一个脚本不放，在它原有内容的基础上修修补补。尽
+	管这种修补式的示例教学也可以让读者明白理论知识，但是却无法开放思路，不利于日后的
+	工作。
+
+三(1) if 条件测试语句
+		if 条件测试语句可以让脚本根据实际情况自动执行相应的命令。从技术角度来讲， if 语
+	句分为单分支结构、双分支结构、多分支结构；其复杂度随着灵活度一起逐级上升。
+	if 条件语句的单分支结构由 if、 then、 fi 关键词组成，而且只在条件成立后才执行预设的
+	命令，相当于口语的“如果……那么……”。单分支的 if 语句属于最简单的一种条件判断结构，
+	语法格式如下
+		if 条件测试操作
+			then 命令序列
+		fi
+	下面使用单分支的 if 条件语句来判断/media/cdrom 文件是否存在，若存在就结束条件判
+	断和整个 Shell 脚本，反之则去创建这个目录：
+	[root@linuxprobe ~]# vim mkcdrom.sh
+	#!/bin/bash
+	DIR="/media/cdrom"
+	if [ ! -e $DIR ]
+	then
+	mkdir -p $DIR
+	fi
+	由于第 5 章才讲解用户身份与权限，因此这里继续用“bash 脚本名称”的方式来执行脚
+	本。在正常情况下，顺利执行完脚本文件后没有任何输出信息，但是可以使用 ls 命令验证
+	/media/cdrom 目录是否已经成功创建：
+	[root@linuxprobe ~]# bash mkcdrom.sh
+	[root@linuxprobe ~]# ls -d /media/cdrom
+	/media/cdrom
+	
+		if 条件语句的双分支结构由 if、 then、 else、 fi 关键词组成，它进行一次条件匹配判断，
+	如果与条件匹配，则去执行相应的预设命令；反之则去执行不匹配时的预设命令，相当于口
+	语的“如果……那么……或者……那么……”。 if 条件语句的双分支结构也是一种很简单的判
+	断结构, 语法格式如下：
+		if 条件测试操作
+			then 命令序列1
+			else 命令序列2
+		fi
+	下面使用双分支的 if 条件语句来验证某台主机是否在线，然后根据返回值的结果，要么
+	显示主机在线信息，要么显示主机不在线信息。这里的脚本主要使用 ping 命令来测试与对方
+	主机的网络联通性，而 Linux 系统中的 ping 命令不像 Windows 一样尝试 4 次就结束，因此为
+	了避免用户等待时间过长，需要通过-c 参数来规定尝试的次数，并使用-i 参数定义每个数据
+	包的发送间隔，以及使用-W 参数定义等待超时时间。
+	[root@linuxprobe ~]# vim chkhost.sh
+	#!/bin/bash
+	ping -c 3 -i 0.2 -W 3 $1 &> /dev/null
+	if [ $? -eq 0 ]
+	then
+	echo "Host $1 is On-line."
+	else
+	echo "Host $1 is Off-line."
+	fi
+	我们在 4.2.3 小节中用过$?变量，作用是显示上一次命令的执行返回值。若前面的那条语
+	句成功执行，则$?变量会显示数字 0，反之则显示一个非零的数字（可能为 1，也可能为 2，
+	取决于系统版本）。因此可以使用整数比较运算符来判断$?变量是否为 0，从而获知那条语句
+	的最终判断情况。这里的服务器 IP 地址为 192.168.10.10，我们来验证一下脚本的效果：
+	[root@linuxprobe ~]# bash chkhost.sh 192.168.10.10
+	Host 192.168.10.10 is On-line.
+	[root@linuxprobe ~]# bash chkhost.sh 192.168.10.20
+	Host 192.168.10.20 is Off-line.
+
+		if 条件语句的多分支结构由 if、 then、 else、 elif、 fi 关键词组成，它进行多次条件匹配判
+	断，这多次判断中的任何一项在匹配成功后都会执行相应的预设命令，相当于口语的“如
+	果……那么……如果……那么……”。 if 条件语句的多分支结构是工作中最常使用的一种条件
+	判断结构，尽管相对复杂但是更加灵活, 语法格式如下：
+		if 条件测试操作1
+			then 命令序列1
+		elif 条件测试操作2 
+			then 命令序列2
+		else
+			命令序列3
+		fi
+	下面使用多分支的 if 条件语句来判断用户输入的分数在哪个成绩区间内，然后输出如
+	Excellent、 Pass、 Fail 等提示信息。在 Linux 系统中， read 是用来读取用户输入信息的命令，
+	能够把接收到的用户输入信息赋值给后面的指定变量， -p 参数用于向用户显示一定的提示信
+	息。在下面的脚本示例中，只有当用户输入的分数大于等于 85 分且小于等于 100 分，才输出
+	Excellent 字样；若分数不满足该条件（即匹配不成功），则继续判断分数是否大于等于 70 分
+	且小于等于 84 分，如果是，则输出 Pass 字样；若两次都落空（即两次的匹配操作都失败了），
+	则输出 Fail 字样：
+	[root@linuxprobe ~]# vim chkscore.sh
+	#!/bin/bash
+	read -p "Enter your score（0-100）： " GRADE
+	if [ $GRADE -ge 85 ] && [ $GRADE -le 100 ] ; then
+	echo "$GRADE is Excellent"
+	elif [ $GRADE -ge 70 ] && [ $GRADE -le 84 ] ; then
+	echo "$GRADE is Pass"
+	else
+	echo "$GRADE is Fail"
+	fi
+	[root@linuxprobe ~]# bash chkscore.sh
+	Enter your score（0-100）： 88
+	88 is Excellent
+	[root@linuxprobe ~]# bash chkscore.sh
+	Enter your score（0-100）： 80
+	80 is Pass
+	下面执行该脚本。当用户输入的分数分别为 30 和 200 时，其结果如下：
+	[root@linuxprobe ~]# bash chkscore.sh
+	Enter your score（0-100）： 30
+	30 is Fail
+	[root@linuxprobe ~]# bash chkscore.sh
+	Enter your score（0-100）： 200
+	200 is Fail
+	为什么输入的分数为 200 时，依然显示 Fail 呢？原因很简单—没有成功匹配脚本中的两个
+	条件判断语句，因此自动执行了最终的兜底策略。可见，这个脚本还不是很完美，建议读者自行
+	完善这个脚本，使得用户在输入大于 100 或小于 0 的分数时，给予 Error 报错字样的提示。
+	
+三(2)、for条件循环语句
+		for 循环语句允许脚本一次性读取多个信息，然后逐一对信息进行操作处理，当要处理的数据
+	有范围时，使用 for 循环语句再适合不过了。 for 循环语句的语法格式如下：
+		for 变量名 in 取值列表
+		do
+			命令序列
+		done
+	下面使用 for 循环语句从列表文件中读取多个用户名，然后为其逐一创建用户账户并设
+	置密码。首先创建用户名称的列表文件 users.txt，每个用户名称单独一行。读者可以自行决定
+	具体的用户名称和个数：
+	[root@linuxprobe ~]# vim users.txt
+	andy
+	barry
+	carl
+	duke
+	eric
+	george
+	接下来编写 Shell 脚本 Example.sh。在脚本中使用 read 命令读取用户输入的密码值，然
+	后赋值给 PASSWD 变量，并通过-p 参数向用户显示一段提示信息，告诉用户正在输入的内容
+	即将作为账户密码。在执行该脚本后，会自动使用从列表文件 users.txt 中获取到所有的用户
+	名称，然后逐一使用“id 用户名”命令查看用户的信息，并使用$?判断这条命令是否执行成
+	功，也就是判断该用户是否已经存在。
+	需要多说一句， /dev/null 是一个被称作 Linux 黑洞的文件，把输出信息重定向到这个文件等
+	同于删除数据（类似于没有回收功能的垃圾箱），可以让用户的屏幕窗口保持简洁。
+	[root@linuxprobe ~]# vim Example.sh
+	#!/bin/bash
+	read -p "Enter The Users Password : " PASSWD
+	for UNAME in `cat users.txt`
+	do
+	id $UNAME &> /dev/null
+	if [ $? -eq 0 ]
+	then
+	echo "Already exists"
+	else
+	useradd $UNAME &> /dev/null
+	echo "$PASSWD" | passwd --stdin $UNAME &> /dev/null
+	if [ $? -eq 0 ]
+	then
+	echo "$UNAME , Create success"
+	else
+	echo "$UNAME , Create failure"
+	fi
+	fi
+	done
+	执行批量创建用户的 Shell 脚本 Example.sh，在输入为账户设定的密码后将由脚本自
+	动检查并创建这些账户。由于已经将多余的信息通过输出重定向符转移到了/dev/null 黑洞
+	文件中，因此在正常情况下屏幕窗口除了“用户账户创建成功”（Create success）的提示后
+	不会有其他内容。
+	在 Linux 系统中， /etc/passwd 是用来保存用户账户信息的文件。如果想确认这个脚本是
+	否成功创建了用户账户，可以打开这个文件，看其中是否有这些新创建的用户信息。
+	[root@linuxprobe ~]# bash Example.sh
+	Enter The Users Password : linuxprobe
+	andy , Create success
+	barry , Create success
+	carl , Create success
+	duke , Create success
+	eric , Create success
+	george , Create success
+	[root@linuxprobe ~]# tail -6 /etc/passwd
+	andy:x:1001:1001::/home/andy:/bin/bash
+	barry:x:1002:1002::/home/barry:/bin/bash
+	carl:x:1003:1003::/home/carl:/bin/bash
+	duke:x:1004:1004::/home/duke:/bin/bash
+	eric:x:1005:1005::/home/eric:/bin/bash
+	george:x:1006:1006::/home/george:/bin/bash
+	您还记得在学习双分支 if 条件语句时，用到的那个测试主机是否在线的脚本么？既然我
+	们现在已经掌握了 for 循环语句，不妨做些更酷的事情，比如尝试让脚本从文本中自动读取主
+	机列表，然后自动逐个测试这些主机是否在线。
+	首先创建一个主机列表文件 ipadds.txt：
+	[root@linuxprobe ~]# vim ipadds.txt
+	192.168.10.10
+	192.168.10.11
+	192.168.10.12
+	然后前面的双分支 if 条件语句与 for 循环语句相结合，让脚本从主机列表文件 ipadds.txt
+	中自动读取 IP 地址（用来表示主机）并将其赋值给 HLIST 变量，从而通过判断 ping 命令执
+	行后的返回值来逐个测试主机是否在线。脚本中出现的$（命令）是一种完全类似于第 3 章的
+	转义字符中反引号`命令`的 Shell 操作符，效果同样是执行括号或双引号括起来的字符串中的
+	命令。大家在编写脚本时，多学习几种类似的新方法，可在工作中大显身手：
+	[root@linuxprobe ~]# vim CheckHosts.sh
+	#!/bin/bash
+	HLIST=$(cat ~/ipadds.txt)
+	for IP in $HLIST
+	do
+	ping -c 3 -i 0.2 -W 3 $IP &> /dev/null
+	if [ $? -eq 0 ] ; 
+	echo "Host $IP is On-line."
+	else
+	echo "Host $IP is Off-line."
+	fi
+	done
+	[root@linuxprobe ~]# ./CheckHosts.sh
+	Host 192.168.10.10 is On-line.
+	Host 192.168.10.11 is Off-line.
+	Host 192.168.10.12 is Off-line.
