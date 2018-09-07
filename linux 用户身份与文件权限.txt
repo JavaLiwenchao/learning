@@ -194,12 +194,12 @@
 	“可读”表示能够读取目录内的文件列表；
 	“可写”表示能够在目录内新增、删除、重命名文件；
 	而“可执行”则表示能够进入该目录。
-	文件的读、写、执行权限可以简写为 rwx，亦可分别用数字 4、 2、 1 来表示，
+	文件的读、写、执行权限可以简写为 rwx，亦可分别用数字 4、 2、 1、0 来表示，
 	文件所有者，所属组及其他用户权限之间无关联，如表 5-5 所示。
 			表 5-5 文件权限的字符与数字表示
-		权限项 		读 	写 	执行 	读 	写 	执行 	读 	 写 	执行
-		字符表示 	r 	w 	 x 		r 	w 	 x 		r    w   	x
-		数字表示 	4 	2 	 1 		4   2 	 1 		4 	 2 	 	1
+		权限项 		读 	写 	执行 	读 	写 	执行 	读 	 写 	执行 	无权限
+		字符表示 	r 	w 	 x 		r 	w 	 x 		r    w   	x		  -
+		数字表示 	4 	2 	 1 		4   2 	 1 		4 	 2 	 	1		  0
 	文件权限的数字法表示基于字符表示（rwx）的权限计算而来，其目的是简化权限的表示。
 	例如，若某个文件的权限为 7 则代表可读、可写、可执行（4+2+1）；若权限为 6 则代表可读、
 	可写（4+2）。我们来看这样一个例子。现在有这样一个文件，其所有者拥有可读、可写、可执
@@ -217,6 +217,462 @@
 
 	在图中，包含了文件的类型、访问权限、所有者（属主）、所属组（属组）、
 	占用的磁盘大小、修改时间和文件名称等信息。
-	通过分析可知，该文件的类型为普通文件，所有者权限为可读、可写（rw-），所属组权限为可读（r--），
+	通过分析可知，该文件的类型为普通文件，所有者权限为可读、可写（rw-），
+	所属组权限为可读（r--），
 	除此以外的其他人也只有可读权限（r--），文件的磁盘占用大小是 1264 字节，
 	最近一次的修改时间为 8 月 18 日的15:06，文件的名称为 initial-setup-ks.cfg
+	
+	权限范围的表示法如下：
+		u User，即文件或目录的拥有者；
+		g Group，即文件或目录的所属群组；
+		o Other，除了文件或目录拥有者或所属群组之外，其他用户皆属于这个范围；
+		a All，即全部的用户，包含拥有者，所属群组以及其他用户；
+		r 读取权限，数字代号为“4”;
+		w 写入权限，数字代号为“2”；
+		x 执行或切换权限，数字代号为“1”；
+		- 不具任何权限，数字代号为“0”；
+		s 特殊功能说明：变更文件或目录的权限。
+	
+	文字设定法 	
+	chmod  ［who］ ［+|-|=］ ［mode］文件名
+
+    命令中各选项的含义为： 
+    操作对象who可是下述字母中的任一个或者它们的组合： 
+		u 表示”用户（user）”，即文件或目录的所有者。 
+		g 表示”同组（group）用户”，即与文件属主有相同组ID的所有用户。 
+		o 表示”其他（others）用户”。 
+		a 表示”所有（all）用户”。它是系统默认值。
+
+    操作符号可以是： 
+		+ 添加某个权限。 
+		- 取消某个权限。 
+		= 赋予给定权限并取消其他所有权限（如果有的话）
+	例子：
+		chmod u+x,g+w f01　　//为文件f01设置自己可以执行，组员可以写入的权限
+		chmod u=rwx,g=rw,o=r f01
+		chmod 764 f01
+		chmod a+x f01　　//对文件f01的u,g,o都设置可执行属性
+	
+	
+	数字设定法 
+    chmod  ［mode］文件名
+	例子：
+		chmod 764 f01
+		
+3、文件的特殊权限
+		在复杂多变的生产环境中，单纯设置文件的 rwx 权限无法满足我们对安全和灵活性的需
+	求，因此便有了 SUID、 SGID 与 SBIT 的特殊权限位。 这是一种对文件权限进行设置的特殊功
+	能，可以与一般权限同时使用，以弥补一般权限不能实现的功能。下面具体解释这 3 个特殊
+	权限位的功能以及用法。
+
+3.1、SUID
+		SUID 是一种对二进制程序进行设置的特殊权限，可以让二进制程序的执行者临时拥有
+	属主的权限（仅对拥有执行权限的二进制程序有效）。例如，所有用户都可以执行 passwd 命
+	令来修改自己的用户密码，而用户密码保存在/etc/shadow 文件中。仔细查看这个文件就会发
+	现它的默认权限是 000，也就是说除了 root 管理员以外，所有用户都没有查看或编辑该文件
+	的权限。但是，在使用 passwd 命令时如果加上 SUID 特殊权限位，就可让普通用户临时获得
+	程序所有者的身份，把变更的密码信息写入到 shadow 文件中。这很像我们在古装剧中见到的
+	手持尚方宝剑的钦差大臣，他手持的尚方宝剑代表的是皇上的权威，因此可以惩戒贪官，但
+	这并不意味着他永久成为了皇上。因此这只是一种有条件的、临时的特殊权限授权方法。
+	查看 passwd 命令属性时发现所有者的权限由 rwx 变成了 rws，其中 x 改变成 s 就意味着
+	该文件被赋予了 SUID 权限。另外有读者会好奇，那么如果原本的权限是 rw-呢？如果原先权
+	限位上没有 x 执行权限，那么被赋予特殊权限后将变成大写的 S。
+	[root@linuxprobe ~]# ls -l /etc/shadow
+	----------. 1 root root 1004 Jan 3 06:23 /etc/shadow
+	[root@linuxprobe ~]# ls -l /bin/passwd
+	-rwsr-xr-x. 1 root root 27832 Jan 29 2017 /bin/passwd
+	
+3.2、SGID
+		SGID 主要实现如下两种功能：
+			➢ 让执行者临时拥有属组的权限（对拥有执行权限的二进制程序进行设置）
+			➢ 在某个目录中创建的文件自动继承该目录的用户组（只可以对目录进行设置）。
+	SGID 的第一种功能是参考 SUID 而设计的，不同点在于执行程序的用户获取的不再是文
+	件所有者的临时权限，而是获取到文件所属组的权限。举例来说，在早期的 Linux 系统中，
+	/dev/kmem 是一个字符设备文件，用于存储内核程序要访问的数据，权限为：
+	cr--r----- 1 root system 2, 1 Feb 11 2017 kmem
+	大家看出问题了吗？除了 root 管理员或属于 system 组成员外，所有用户都没有读取该文
+	件的权限。由于在平时我们需要查看系统的进程状态，为了能够获取到进程的状态信息，可在
+	用于查看系统进程状态的 ps 命令文件上增加 SGID 特殊权限位。查看 ps 命令文件的属性信息：
+	-r-xr-sr-x 1 bin system 59346 Feb 11 2017 ps
+	这样一来，由于 ps 命令被增加了 SGID 特殊权限位，所以当用户执行该命令时，也就临
+	时获取到了 system 用户组的权限，从而可以顺利地读取设备文件了。
+	前文提到，每个文件都有其归属的所有者和所属组，当创建或传送一个文件后，这个文
+	件就会自动归属于执行这个操作的用户（即该用户是文件的所有者）。如果现在需要在一个部
+	门内设置共享目录，让部门内的所有人员都能够读取目录中的内容，那么就可以创建部门共
+	享目录后，在该目录上设置 SGID 特殊权限位。这样，部门内的任何人员在里面创建的任何文
+	件都会归属于该目录的所属组，而不再是自己的基本用户组。此时，我们用到的就是 SGID 的
+	第二个功能，即在某个目录中创建的文件自动继承该目录的用户组（只可以对目录进行设置）。
+	[root@linuxprobe ~]# cd /tmp
+	[root@linuxprobe tmp]# mkdir testdir
+	[root@linuxprobe tmp]# ls -ald testdir/
+	drwxr-xr-x. 2 root root 6 Feb 11 11:50 testdir/
+	[root@linuxprobe tmp]# chmod -Rf 777 testdir/
+	[root@linuxprobe tmp]# chmod -Rf g+s testdir/
+	[root@linuxprobe tmp]# ls -ald testdir/
+	drwxrwsrwx. 2 root root 6 Feb 11 11:50 testdir/
+	在使用上述命令设置好目录的 777 权限（确保普通用户可以向其中写入文件），并为该目
+	录设置了 SGID 特殊权限位后，就可以切换至一个普通用户，然后尝试在该目录中创建文件，
+	并查看新创建的文件是否会继承新创建的文件所在的目录的所属组名称：
+	[root@linuxprobe tmp]# su - linuxprobe
+	Last login: Wed Feb 11 11:49:16 CST 2017 on pts/0
+	[linuxprobe@linuxprobe ~]$ cd /tmp/testdir/
+	[linuxprobe@linuxprobe testdir]$ echo "linuxprobe.com" > test
+	[linuxprobe@linuxprobe testdir]$ ls -al test
+	-rw-rw-r--. 1 linuxprobe root 15 Feb 11 11:50 test
+	除了上面提到的 SGID 的这两个功能，我们再介绍两个与本小节内容相关的命令：
+	chmod和 chown。
+	chmod 命令是一个非常实用的命令，能够用来设置文件或目录的权限，
+	格式为“chmod[参数] 权文件或目录名称”。
+	如果要把一个文件的权限设置成其所有者可读可写可执行、
+	所属组可读可写、其他人没有任何权限，则相应的字符法表示为 rwxrw----，其对应的数字法
+	表示为 760。通过前面的基础学习和当前的练习实践，现在大家可以感受到使用数字法来设置
+	文件权限的便捷性了吧。
+	[root@linuxprobe ~]# ls -al test
+	-rw-rw-r--. 1 linuxprobe root 15 Feb 11 11:50 test
+	[root@linuxprobe ~]# chmod 760 test
+	[root@linuxprobe ~]# ls -l test
+	-rwxrw----. 1 linuxprobe root 15 Feb 11 11:50 test
+	除了设置文件或目录的权限外，还可以设置文件或目录的所有者和所属组，这里使用的
+	命令为 chown，
+	其格式为“chown [参数] 所有者:所属组 文件或目录名称”。
+	chmod 和 chown 命令是用于修改文件属性和权限的最常用命令，它们还有一个特别的共
+	性，就是针对目录进行操作时需要加上大写参数-R 来表示递归操作，即对目录内所有的文件
+	进行整体操作。
+	[root@linuxprobe ~]# ls -l test
+	-rwxrw----. 1 linuxprobe root 15 Feb 11 11:50 test
+	[root@linuxprobe ~]# chown root:bin test
+	[root@linuxprobe ~]# ls -l test
+	-rwxrw----. 1 root bin 15 Feb 11 11:50 test
+	
+3.3、SBIT
+		现在，大学里的很多老师都要求学生将作业上传到服务器的特定共享目录中，但总是有
+	几个“破坏分子”喜欢删除其他同学的作业，这时就要设置 SBIT（Sticky Bit）特殊权限位了
+	（也可以称之为特殊权限位之粘滞位）。 SBIT 特殊权限位可确保用户只能删除自己的文件，而
+	不能删除其他用户的文件。换句话说，当对某个目录设置了 SBIT 粘滞位权限后，那么该目录
+	中的文件就只能被其所有者执行删除操作了。
+	最初不知道是哪位非资深技术人员将 Sticky Bit 直译成了“粘滞位”，刘遄老师建议将其
+	称为“保护位”，这既好记，又能立刻让人了解它的作用。 RHEL 7 系统中的/tmp 作为一个共
+	享文件的目录，默认已经设置了 SBIT 特殊权限位，因此除非是该目录的所有者，否则无法删
+	除这里面的文件。
+	与前面所讲的 SUID 和 SGID 权限显示方法不同，当目录被设置 SBIT 特殊权限位后，文
+	件的其他人权限部分的 x 执行权限就会被替换成 t 或者 T，原本有 x 执行权限则会写成 t，原
+	本没有 x 执行权限则会被写成 T。
+	[root@linuxprobe tmp]# su - linuxprobe
+	Last login: Wed Feb 11 12:41:20 CST 2017 on pts/0
+	[linuxprobe@linuxprobe tmp]$ ls -ald /tmp
+	drwxrwxrwt. 17 root root 4096 Feb 11 13:03 /tmp
+	[linuxprobe@linuxprobe ~]$ cd /tmp
+	[linuxprobe@linuxprobe tmp]$ ls -ald
+	drwxrwxrwt. 17 root root 4096 Feb 11 13:03 .
+	[linuxprobe@linuxprobe tmp]$ echo "Welcome to linuxprobe.com" > test
+	[linuxprobe@linuxprobe tmp]$ chmod 777 test
+	[linuxprobe@linuxprobe tmp]$ ls -al test
+	-rwxrwxrwx. 1 linuxprobe linuxprobe 10 Feb 11 12:59 test
+	其实，文件能否被删除并不取决于自身的权限，而是看其所在目录是否有写入权限（其
+	原理会在下个章节讲到）。为了避免现在很多读者不放心，所以上面的命令还是赋予了这个 test
+	文件最大的 777 权限（rwxrwxrwx）。我们切换到另外一个普通用户，然后尝试删除这个其他
+	人创建的文件就会发现，即便读、写、执行权限全开，但是由于 SBIT 特殊权限位的缘故，依
+	然无法删除该文件：
+	[root@linuxprobe tmp]# su - blackshield
+	Last login: Wed Feb 11 12:41:29 CST 2017 on pts/1
+	[blackshield@linuxprobe ~]$ cd /tmp
+	[blackshield@linuxprobe tmp]$ rm -f test
+	rm: cannot remove ‘test’: Operation not permitted
+	当然，要是也想对其他目录来设置 SBIT 特殊权限位，用 chmod 命令就可以了。对应的
+	参数 o+t 代表设置 SBIT 粘滞位权限：
+	[blackshield@linuxprobe tmp]$ exit
+	Logout
+	[root@linuxprobe tmp]# cd ~
+	[root@linuxprobe ~]# mkdir linux
+	[root@linuxprobe ~]# chmod -R o+t linux/
+	[root@linuxprobe ~]# ls -ld linux/
+	drwxr-xr-t. 2 root root 6 Feb 11 19:34 linux/
+	
+4、文件的隐藏属性
+		Linux 系统中的文件除了具备一般权限和特殊权限之外，还有一种隐藏权限，即被隐藏起
+	来的权限，默认情况下不能直接被用户发觉。有用户曾经在生产环境和 RHCE 考试题目中碰
+	到过明明权限充足但却无法删除某个文件的情况，或者仅能在日志文件中追加内容而不能修
+	改或删除内容，这在一定程度上阻止了黑客篡改系统日志的图谋，因此这种“奇怪”的文件也
+	保障了 Linux 系统的安全性。
+
+4.1、chattr 命令
+	chattr 命令用于设置文件的隐藏权限，格式为“chattr [参数] 文件”。如果想要把某个隐藏
+	功能添加到文件上，则需要在命令后面追加“+参数”，如果想要把某个隐藏功能移出文件，
+	则需要追加“-参数”。 chattr 命令中可供选择的隐藏权限参数非常丰富，具体如表 5-6 所示。
+		表 5-6 chattr 命令中用于隐藏权限的参数及其作用
+	参数 		作用
+	 i		无法对文件进行修改；若对目录设置了该参数，则仅能修改其中的子文件内容
+			而不能新建或删除文件
+	 a 		仅允许补充（追加）内容，无法覆盖/删除内容（Append Only）
+	 S 		文件内容在变更后立即同步到硬盘（sync）
+	 s 		彻底从硬盘中删除，不可恢复（用 0 填充原文件所在硬盘区域）
+	 A 		不再修改这个文件或目录的最后访问时间（atime）
+	 b 		不再修改文件或目录的存取时间
+	 D 		检查压缩文件中的错误
+	 d 		使用 dump 命令备份时忽略本文件/目录
+	 c 		默认将文件或目录进行压缩
+	 u 		当删除该文件后依然保留其在硬盘中的数据，方便日后恢复
+	 t  	让文件系统支持尾部合并（tail-merging）
+	 X 		可以直接访问压缩文件中的内容
+	为了让读者能够更好地见识隐藏权限的效果，我们先来创建一个普通文件，然后立即尝
+	试删除（这个操作肯定会成功）：
+	[root@linuxprobe ~]# echo "for Test" > linuxprobe
+	[root@linuxprobe ~]# rm linuxprobe
+	rm: remove regular file ‘linuxprobe’? y
+	实践是检验真理的唯一标准。如果您没有亲眼见证过隐藏权限强大功能的美妙，就一定
+	不会相信原来 Linux 系统会如此安全。接下来我们再次新建一个普通文件，并为其设置不允
+	许删除与覆盖（+a 参数）权限，然后再尝试将这个文件删除：
+	[root@linuxprobe ~]# echo "for Test" > linuxprobe
+	[root@linuxprobe ~]# chattr +a linuxprobe
+	[root@linuxprobe ~]# rm linuxprobe
+	rm: remove regular file ‘linuxprobe’? y
+	rm: cannot remove ‘linuxprobe’: Operation not permitted
+	可见，上述操作失败了。
+	
+4.2、lsattr 命令
+		lsattr 命令用于显示文件的隐藏权限，格式为“lsattr [参数] 文件”。在 Linux 系统中，
+	文件的隐藏权限必须使用 lsattr 命令来查看，平时使用的 ls 之类的命令则看不出端倪：
+	[root@linuxprobe ~]# ls -al linuxprobe
+	-rw-r--r--. 1 root root 9 Feb 12 11:42 linuxprobe
+	一旦使用 lsattr 命令后，文件上被赋予的隐藏权限马上就会原形毕露。此时可以按照显示
+	的隐藏权限的类型（字母），使用 chattr 命令将其去掉：
+	[root@linuxprobe ~]# lsattr linuxprobe
+	-----a---------- linuxprobe
+	[root@linuxprobe ~]# chattr -a linuxprobe
+	[root@linuxprobe ~]# lsattr linuxprobe
+	---------------- linuxprobe
+	[root@linuxprobe ~]# rm linuxprobe
+	rm: remove regular file ‘linuxprobe’? y
+	
+5、文件访问控制列表
+		不知道大家是否发现，前文讲解的一般权限、特殊权限、隐藏权限其实有一个共性—权限是
+	针对某一类用户设置的。如果希望对某个指定的用户进行单独的权限控制，就需要用到文件
+	的访问控制列表（ACL）了。通俗来讲，基于普通文件或目录设置 ACL 其实就是针对指定的
+	用户或用户组设置文件或目录的操作权限。另外，如果针对某个目录设置了 ACL，则目录中
+	的文件会继承其 ACL；若针对文件设置了 ACL，则文件不再继承其所在目录的 ACL。
+	为了更直观地看到 ACL 对文件权限控制的强大效果，我们先切换到普通用户，然后
+	尝试进入 root 管理员的家目录中。在没有针对普通用户对 root 管理员的家目录设置 ACL
+	之前，其执行结果如下所示：
+	[root@linuxprobe ~]# su - linuxprobe
+	Last login: Sat Mar 21 16:31:19 CST 2017 on pts/0
+	[linuxprobe@linuxprobe ~]$ cd /root
+	-bash: cd: /root: Permission denied
+	[linuxprobe@linuxprobe root]$ exit
+	
+5.1、setfacl 命令
+		setfacl 命令用于管理文件的 ACL 规则，格式为“setfacl [参数] 文件名称”。文件的 ACL
+	提供的是在所有者、所属组、其他人的读/写/执行权限之外的特殊权限控制，使用 setfacl 命令
+	可以针对单一用户或用户组、单一文件或目录来进行读/写/执行权限的控制。其中，针对目录
+	文件需要使用-R 递归参数；针对普通文件则使用-m 参数；如果想要删除某个文件的 ACL，
+	则可以使用-b 参数。下面来设置用户在/root 目录上的权限：
+	[root@linuxprobe ~]# setfacl -Rm u:linuxprobe:rwx /root
+	[root@linuxprobe ~]# su - linuxprobe
+	Last login: Sat Mar 21 15:45:03 CST 2017 on pts/1
+	[linuxprobe@linuxprobe ~]$ cd /root
+	[linuxprobe@linuxprobe root]$ ls
+	anaconda-ks.cfg Downloads Pictures Public
+	[linuxprobe@linuxprobe root]$ cat anaconda-ks.cfg
+	[linuxprobe@linuxprobe root]$ exit
+	是不是觉得效果很酷呢？但是现在有这样一个小问题—怎么去查看文件上有那些 ACL
+	呢？常用的 ls 命令是看不到 ACL 表信息的，但是却可以看到文件的权限最后一个点（.）变
+	成了加号（+） ,这就意味着该文件已经设置了 ACL 了。现在大家是不是感觉学得越多，越不
+	敢说自己精通 Linux 系统了吧？就这么一个不起眼的点（.），竟然还表示这么一种重要的权
+	限。
+	[root@linuxprobe ~]# ls -ld /root
+	dr-xrwx---+ 14 root root 4096 May 4 2017 /root
+	
+5.2、getfacl 命令
+		getfacl 命令用于显示文件上设置的 ACL 信息，格式为“getfacl 文件名称”。 Linux 系统
+	中的命令就是这么又可爱又好记。想要设置 ACL，用的是 setfacl 命令；要想查看 ACL，则用
+	的是 getfacl 命令。下面使用 getfacl 命令显示在 root 管理员家目录上设置的所有 ACL 信息。
+	[root@linuxprobe ~]# getfacl /root
+	getfacl: Removing leading '/' from absolute path names
+	# file: root
+	# owner: root
+	# group: root
+	user::r-x
+	user:linuxprobe:rwx
+	group::r-x
+	mask::rwx
+	other::---
+	
+6、su 命令与 sudo 服务
+		各位读者在实验环境中很少遇到安全问题，并且为了避免因权限因素导致配置服务失败，从
+	而建议使用 root 管理员来学习本书，但是在生产环境中还是要对安全多一份敬畏之心，不要用 root
+	管理员去做所有事情。因为一旦执行了错误的命令，可能会直接导致系统崩溃，这样一来，不但
+	客户指责、领导批评，没准奖金也会鸡飞蛋打。但转头一想，尽管 Linux 系统为了安全性考虑，
+	使得许多系统命令和服务只能被 root管理员来使用，但是这也让普通用户受到了更多的权限束缚，
+	从而导致无法顺利完成特定的工作任务。
+	su 命令可以解决切换用户身份的需求，使得当前用户在不退出登录的情况下，顺畅地切
+	换到其他用户，比如从 root 管理员切换至普通用户：
+	[root@linuxprobe ~]# id
+	uid=0(root) gid=0(root) groups=0(root)
+	[root@linuxprobe ~]# su - linuxprobe
+	Last login: Wed Jan 4 01:17:25 EST 2017 on pts/0
+	[linuxprobe@linuxprobe ~]$ id
+	uid=1000(linuxprobe) gid=1000(linuxprobe) groups=1000(linuxprobe) context=unconfined_
+	u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+	细心的读者一定会发现，上面的 su 命令与用户名之间有一个减号（-），这意味着完全切
+	换到新的用户，即把环境变量信息也变更为新用户的相应信息，而不是保留原始的信息。强
+	烈建议在切换用户身份时添加这个减号（-）。
+	另外，当从 root 管理员切换到普通用户时是不需要密码验证的，而从普通用户切换成 root
+	管理员就需要进行密码验证了；这也是一个必要的安全检查：
+	[linuxprobe@linuxprobe root]$ su root
+	Password:
+	[root@linuxprobe ~]# su - linuxprobe
+	Last login: Mon Aug 24 19:27:09 CST 2017 on pts/0
+	[linuxprobe@linuxprobe ~]$ exit
+	logout
+	[root@linuxprobe ~]#
+	尽管像上面这样使用 su 命令后，普通用户可以完全切换到 root 管理员身份来完成相应工作，
+	但这将暴露 root 管理员的密码，从而增大了系统密码被黑客获取的几率；这并不是最安全的方案。
+	刘遄老师接下来将介绍如何使用 sudo 命令把特定命令的执行权限赋予给指定用户，
+	这样既可保证普通用户能够完成特定的工作，也可以避免泄露 root 管理员密码。我们要做
+	的就是合理配置 sudo 服务，以便兼顾系统的安全性和用户的便捷性。 sudo 服务的配置原
+	则也很简单—在保证普通用户完成相应工作的前提下，尽可能少地赋予额外的权限。
+	sudo 命令用于给普通用户提供额外的权限来完成原本 root 管理员才能完成的任务，格式
+	为“sudo [参数] 命令名称”。 sudo 服务中可用的参数以及相应的作用如表 5-7 所示。
+			表 5-7 sudo 服务中的可用参数以及作用
+	参数			作用
+	-h 			列出帮助信息
+	-l 			列出当前用户可执行的命令
+	-u 			用户名或 UID 值 以指定的用户身份执行命令
+	-k 			清空密码的有效时间，下次执行 sudo 时需要再次进行密码验证
+	-b 			在后台执行指定的命令
+	-p 			更改询问密码的提示语
+	总结来说， sudo 命令具有如下功能：
+	➢ 限制用户执行指定的命令：
+	➢ 记录用户执行的每一条命令；
+	➢ 配置文件（/etc/sudoers）提供集中的用户管理、权限与主机等参数；
+	➢ 验证密码的后 5 分钟内（默认值）无须再让用户再次验证密码。
+	
+	当然，如果担心直接修改配置文件会出现问题，则可以使用 sudo 命令提供的 visudo 命令
+	来配置用户权限。这条命令在配置用户权限时将禁止多个用户同时修改 sudoers 配置文件，还
+	可以对配置文件内的参数进行语法检查，并在发现参数错误时进行报错。
+注：
+	只有root管理员才可以使用visudo命令编辑sudo服务的配置文件
+	
+	visudo: >>> /etc/sudoers: syntax error near line 111 <<<
+	What now?
+	Options are:
+	(e)dit sudoers file again
+	(x)it without saving changes to sudoers file
+	(Q)uit and save changes to sudoers file (DANGER!)
+
+	使用 visudo 命令配置 sudo 命令的配置文件时，其操作方法与 Vim 编辑器中用到的方法
+	一致，因此在编写完成后记得在末行模式下保存并退出。在 sudo 命令的配置文件中，按照下
+	面的格式将第 99 行（大约）填写上指定的信息：
+		谁可以使用	允许使用的主机=(以谁的身份) 可执行命令的列表
+	[root@linuxprobe ~]# visudo
+	96 ##
+	97 ## Allow root to run any commands anywhere
+	98 root ALL=(ALL) ALL
+	99 linuxprobe ALL=(ALL) ALL
+	在填写完毕后记得要先保存再退出，然后切换至指定的普通用户身份，此时就可以用 
+	sudo -l 命令查看到所有可执行的命令了（下面的命令中，验证的是该普通用户的密码，
+	而不是 root管理员的密码，请读者不要搞混了）：
+	[root@linuxprobe ~]# su - linuxprobe
+	Last login: Thu Sep 3 15:12:57 CST 2017 on pts/1
+	[linuxprobe@linuxprobe ~]$ sudo -l
+	[sudo] password for linuxprobe: 此处输入linuxprobe用户的密码
+	Matching Defaults entries for linuxprobe on this host:
+	requiretty, !visiblepw, always_set_home, env_reset, env_keep="COLORS
+	DISPLAY HOSTNAME HISTSIZE INPUTRC KDEDIR LS_COLORS", env_keep+="MAIL PS1
+	PS2 QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE
+	LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY
+	LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL
+	LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY",
+	secure_path=/sbin\:/bin\:/usr/sbin\:/usr/bin
+	User linuxprobe may run the following commands on this host:
+	(ALL) ALL
+	接下来是见证奇迹的时刻！作为一名普通用户，是肯定不能看到 root 管理员的家目录
+	（/root）中的文件信息的，但是，只需要在想执行的命令前面加上 sudo 命令就可以了：
+	[linuxprobe@linuxprobe ~]$ ls /root
+	ls: cannot open directory /root: Permission denied
+	[linuxprobe@linuxprobe ~]$ sudo ls /root
+	anaconda-ks.cfg Documents initial-setup-ks.cfg Pictures Templates
+	Desktop Downloads Music Public Videos
+	效果立竿见影！但是考虑到生产环境中不允许某个普通用户拥有整个系统中所有命令的
+	最高执行权（这也不符合前文提到的权限赋予原则，即尽可能少地赋予权限），因此 ALL 参
+	数就有些不合适了。因此只能赋予普通用户具体的命令以满足工作需求，这也受到了必要的
+	权限约束。如果需要让某个用户只能使用 root 管理员的身份执行指定的命令，切记一定要给
+	出该命令的绝对路径，否则系统会识别不出来。我们可以先使用 whereis 命令找出命令所对应
+	的保存路径，然后把配置文件第 99 行的用户权限参数修改成对应的路径即可：
+	[linuxprobe@linuxprobe ~]$ exit
+	logout
+	[root@linuxprobe ~]# whereis cat
+	cat: /usr/bin/cat /usr/share/man/man1/cat.1.gz /usr/share/man/man1p/cat.1p.gz
+	[root@linuxprobe ~]# visudo
+	96 ##
+	97 ## Allow root to run any commands anywhere
+	98 root ALL=(ALL) ALL
+	99 linuxprobe ALL=(ALL) /usr/bin/cat
+	在编辑好后依然是先保存再退出。再次切换到指定的普通用户，然后尝试正常查看某个
+	文件的内容，此时系统提示没有权限。这时再使用 sudo 命令就可以顺利地查看文件内容了：
+	[root@linuxprobe ~]# su - linuxprobe
+	Last login: Thu Sep 3 15:51:01 CST 2017 on pts/1
+	[linuxprobe@linuxprobe ~]$ cat /etc/shadow
+	cat: /etc/shadow: Permission denied
+	[linuxprobe@linuxprobe ~]$ sudo cat /etc/shadow
+	root:$6$GV3UVtX4ZGg6ygA6$J9pBuPGUSgZslj83jyoI7ThJla9ZAULku3BcncAYF00Uwk6Sqc4E36
+	MnD1hLtlG9QadCpQCNVJs/5awHd0/pi1:16626:0:99999:7:::
+	bin:*:16141:0:99999:7:::
+	daemon:*:16141:0:99999:7:::
+	adm:*:16141:0:99999:7:::
+	lp:*:16141:0:99999:7:::
+	sync:*:16141:0:99999:7:::
+	shutdown:*:16141:0:99999:7:::
+	halt:*:16141:0:99999:7:::
+	mail:*:16141:0:99999:7:::
+	operator:*:16141:0:99999:7:::
+	games:*:16141:0:99999:7:::
+	ftp:*:16141:0:99999:7:::
+	nobody:*:16141:0:99999:7:::
+	………………省略部分文件内容………………
+	大家千万不要以为到这里就结束了，刘遄老师还有更压箱底的宝贝。不知大家是否发觉
+	在每次执行 sudo 命令后都会要求验证一下密码。虽然这个密码就是当前登录用户的密码，但
+	是每次执行 sudo 命令都要输入一次密码其实也挺麻烦的，这时可以添加 NOPASSWD 参数，
+	使得用户执行 sudo 命令时不再需要密码验证：
+	[linuxprobe@linuxprobe ~]$ exit
+	logout
+	[root@linuxprobe ~]# whereis poweroff
+	poweroff: /usr/sbin/poweroff /usr/share/man/man8/poweroff.8.gz
+	[root@linuxprobe ~]# visudo
+	………………省略部分文件内容………………
+	96 ##
+	97 ## Allow root to run any commands anywhere
+	98 root ALL=(ALL) ALL
+	99 linuxprobe ALL=NOPASSWD: /usr/sbin/poweroff
+	………………省略部分文件内容………………
+	这样，当切换到普通用户后再执行命令时，就不用再频繁地验证密码了，我们在日常工
+	作中也就痛快至极了。
+	[root@linuxprobe ~]# su - linuxprobe
+	Last login: Thu Sep 3 15:58:31 CST 2017 on pts/1
+	[linuxprobe@linuxprobe ~]$ poweroff
+	User root is logged in on seat0.
+	Please retry operation after closing inhibitors and logging out other users.
+	Alternatively, ignore inhibitors and users with 'systemctl poweroff -i'.
+	[linuxprobe@linuxprobe ~]$ sudo poweroff
+	
+	
+复习题
+	1． 在 RHEL 7 系统中， root 管理员是谁？
+		是 UID 为 0 的用户，默认是 root 管理员。
+	2． 如何使用 Linux 系统的命令行来添加或删除用户？
+		添加和删除用户的命令分别是 useradd 与 userdel。
+	3． 若某个文件的所有者具有文件的读/写/执行权限，其余人仅有读权限，那么用数字法表示
+	应该是什么?
+		所有者权限为 rwx，所属组和其他人的权限为 r--，因此数字法表示应该是 744。
+	4． 某链接文件的权限用数字法表示为 755，那么相应的字符法表示是什么呢？
+		在 Linux 系统中，不同文件具有不同的类型，因此这里应写成 lrwxr-xr-x。
+	5． 如果希望用户执行某命令时临时拥有该命令所有者的权限，应该设置什么特殊权限？
+		特殊权限中的 SUID。
+	6． 若对文件设置了隐藏权限+i，则意味着什么？
+		无法对文件进行修改；若对目录设置了该参数，则仅能修改其中的子文件内容而不能
+		新建或删除文件。
+	7． 使用访问控制列表（ACL）来限制 linuxprobe 用户组，使得该组中的所有成员不得在/tmp
+		目录中写入内容。
+		想要设置用户组的 ACL，则需要把 u 改成 g，即 setfacl -Rm g:linuxprobe:r-x /tmp。
+	8． 当普通用户使用 sudo 命令时是否需要验证密码？
+		系统在默认情况下需要验证当前登录用户的密码，若不想要验证，可添加 NOPASSWD
+		参数。
