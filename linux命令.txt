@@ -193,7 +193,7 @@
 	cd 命令用于切换工作路径，格式为“cd [目录名称]”。
 	这个命令应该是最常用的一个 Linux 命令了。可以通过 cd 命令迅速、灵活地切换到不同
 	的工作目录。除了常见的切换目录方式，还可以使用“cd -”命令返回到上一次所处的目录，
-	使用“cd..”命令进入上级目录， 以及使用“cd ~”命令切换到当前用户的家目录，亦或使用
+	使用“cd ..”命令进入上级目录， 以及使用“cd ~”命令切换到当前用户的家目录，亦或使用
 	“cd ~username”切换到其他用户的家目录。例如，可以使用“cd 路径”的方式切换进/etc 目录中：
 	[root@linuxprobe ~]# cd /etc
 	同样的道理，可使用下述命令切换到/bin 目录中：
@@ -521,7 +521,7 @@
 	………………省略部分压缩过程信息………………
 	接下来将打包后的压缩包文件指定解压到/root/etc 目录中（先使用 mkdir 命令来创建/root/etc 目录）：
 	[root@linuxprobe ~]# mkdir /root/etc
-	[root@linuxprobe ~]# tar xzvf etc.tar.gz -C /root/etc
+	[root@linuxprobe ~]# tar -xzvf etc.tar.gz -C /root/etc
 	etc/
 	etc/fstab
 	etc/crypttab
